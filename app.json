@@ -2,13 +2,13 @@
   "expo": {
     "name": "localBuss",
     "slug": "localBuss",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/iconlogo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/L_Azul.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

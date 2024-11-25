@@ -1,4 +1,3 @@
-//ListarRotas.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, Button, FlatList, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -6,15 +5,16 @@ import styles from './ListarRotasStyle.js'
 import { useFocusEffect } from '@react-navigation/native'; // Para atualizar ao focar na tela
 
 // Função para obter a cor da rota
-const getRouteColor = (routeName) => {
+const getRouteColor = (routeName, color) => {
   const routeColors = {
     'Cohab/Santa Maria': '#0000FF', // Azul
     'São Pedro': '#00FF00',        // Verde
     'Emilio Gardenal': '#FF0000',   // Vermelho
     'Povo Feliz': '#800080',        // Roxo
-    'São Roque/Bonanza': '#FFA500'   // Laranja
+    'São Roque/Bonanza': '#FFA500', // Laranja
   };
-  return routeColors[routeName] || '#000000'; // Preto como cor padrão
+  // Se a cor não for uma das predefinidas, usamos a cor que foi retornada pela API ou o valor padrão
+  return routeColors[routeName] || color || '#000000'; // Preto como cor padrão
 };
 
 export default function ListarRotas({ navigation }) {
@@ -38,8 +38,8 @@ export default function ListarRotas({ navigation }) {
       const response = await fetch('https://parseapi.back4app.com/classes/Rota', {
         method: 'GET',
         headers: {
-          'X-Parse-Application-Id': 'QlUVf0spu3gUQPMifr8zOVmG3LCbYmsGiSdd62rI',
-          'X-Parse-REST-API-Key': 'xiUvBsGSYVF0H7iDSYum9MXekIatgY7xh8ghQu3N'
+          'X-Parse-Application-Id': 'arjJzEgN7cooqvlcKclRSbD99VdjMHmrQIptuBMa',
+          'X-Parse-REST-API-Key': 'NrywrhYcOsflSr1qg1A7wHulxIS3a8ubUBCVLkil'
         },
       });
 
@@ -61,8 +61,8 @@ export default function ListarRotas({ navigation }) {
       const response = await fetch(`https://parseapi.back4app.com/classes/Rota/${id}`, {
         method: 'DELETE',
         headers: {
-          'X-Parse-Application-Id': 'QlUVf0spu3gUQPMifr8zOVmG3LCbYmsGiSdd62rI',
-          'X-Parse-REST-API-Key': 'xiUvBsGSYVF0H7iDSYum9MXekIatgY7xh8ghQu3N'
+          'X-Parse-Application-Id': 'arjJzEgN7cooqvlcKclRSbD99VdjMHmrQIptuBMa',
+          'X-Parse-REST-API-Key': 'NrywrhYcOsflSr1qg1A7wHulxIS3a8ubUBCVLkil'
         },
       });
 
@@ -78,8 +78,8 @@ export default function ListarRotas({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    const routeColor = getRouteColor(item.name);
-  
+    const routeColor = getRouteColor(item.name, item.color); // Obtendo a cor da rota
+
     return (
       <TouchableOpacity
         style={styles.routeItem}
@@ -100,7 +100,6 @@ export default function ListarRotas({ navigation }) {
       </TouchableOpacity>
     );
   };
-  
 
   return (
     <View style={styles.container}>

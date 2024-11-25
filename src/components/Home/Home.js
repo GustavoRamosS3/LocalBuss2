@@ -1,21 +1,25 @@
-// Home.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, Image, Modal, TouchableOpacity, TextInput } from 'react-native';
 import * as Location from 'expo-location';
 import { format } from 'date-fns';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from './HomeStyle.js'
+import styles from './HomeStyle.js';
 
 const logo = require('../../../assets/L_Azul.png'); // Atualize o caminho conforme necessário
 
 const routeColors = {
-  'Cohab/Santa Maria': 'Azul',
-  'São Pedro': 'Verde',
-  'Emilio Gardenal': 'Vermelha',
-  'Povo Feliz': 'Roxo',
-  'São Roque/Bonanza': 'Laranja'
+  'Cohab/Santa Maria': 'Blue',
+  'São Pedro': 'Green',
+  'Emilio Gardenal': 'Red',
+  'Povo Feliz': 'Purple',
+  'São Roque/Bonanza': 'orange',
 };
+
+const validColors = [
+  'blue', 'green', 'red', 'purple', 'orange', 'yellow', 'pink', 'black', 'white', 'brown', 'gray', 'cyan', 'magenta',
+  'indigo', 'violet', 'teal', 'lime', 'navy', 'maroon', 'beige', 'gold', 'silver', 'peach', 'mint', 'coral', 'lavender'
+];
 
 export default function Home({ navigation, route, setUsuarioLogado, resetLoginState }) {
   const [location, setLocation] = useState(null);
@@ -30,6 +34,9 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
   const [locationSubscription, setLocationSubscription] = useState(null);
   const [routePath, setRoutePath] = useState([]);
   const [selectedRouteName, setSelectedRouteName] = useState('');
+  const [showNewRouteFormModal, setShowNewRouteFormModal] = useState(false); // Novo modal para cadastro de rota
+  const [newRouteName, setNewRouteName] = useState(''); // Nome da nova rota
+  const [newRouteColor, setNewRouteColor] = useState(''); // Cor da nova rota
 
   const nomeUsuario = route.params?.nomeUsuario || 'Usuário'; // Obtém o nome do usuário logado
 
@@ -37,7 +44,7 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
   const handleLogout = async () => {
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Login' }], // Aqui especificamos a tela correta no navegador pai
+      routes: [{ name: 'Login' }],
     });
   };
 
@@ -70,22 +77,21 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
 
   const handleStart = () => {
     if (!hasStarted) {
-      setModalVisible(true);
+      setModalVisible(true); // Abre as opções de rotas predefinidas
     } else {
       setIsRunning(true);
       startLocationUpdates();
     }
   };
 
-  const startTimer = (name) => {
+  const startTimer = (name, color) => {
     setRouteName(name);
     const now = new Date();
     setDate(format(now, 'dd-MM-yyyy HH:mm:ss'));
-    const routeColor = routeColors[name] || 'Preto'; // Cor padrão
     setIsRunning(true);
     setHasStarted(true);
     setModalVisible(false);
-    startLocationUpdates(routeColor); // Passa a cor para a função de início
+    startLocationUpdates(color);
   };
 
   const startLocationUpdates = async (color) => {
@@ -134,12 +140,11 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
       return;
     }
 
-    const routeId = Math.floor(Math.random() * 1000000); // Gera um número aleatório
-    const color = routeColors[routeName] || 'Preto'; // Define uma cor padrão
+    const routeId = Math.floor(Math.random() * 1000); // Gera um número aleatório
     const routeData = {
       routeId: routeId,
       name: routeName,
-      color: color,
+      color: routePath[0].color, // A primeira coordenada define a cor
       date: date,
       path: routePath,
       time: formatTime(timer),
@@ -150,8 +155,8 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Parse-Application-Id': 'QlUVf0spu3gUQPMifr8zOVmG3LCbYmsGiSdd62rI',
-          'X-Parse-REST-API-Key': 'xiUvBsGSYVF0H7iDSYum9MXekIatgY7xh8ghQu3N',
+          'X-Parse-Application-Id': 'arjJzEgN7cooqvlcKclRSbD99VdjMHmrQIptuBMa',
+          'X-Parse-REST-API-Key': 'NrywrhYcOsflSr1qg1A7wHulxIS3a8ubUBCVLkil',
         },
         body: JSON.stringify(routeData),
       });
@@ -163,7 +168,7 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
 
       const data = await response.json();
       console.log('Route saved successfully:', data);
-      setRoutePath([]);
+      setRoutePath([]); // Limpa o caminho após salvar
     } catch (error) {
       console.error('Error saving route:', error.message || error);
     }
@@ -175,6 +180,29 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
     const getMinutes = `0${minutes % 60}`.slice(-2);
     const getHours = `0${Math.floor(time / 3600)}`.slice(-2);
     return `${getHours} : ${getMinutes} : ${getSeconds}`;
+  };
+
+  const handleCreateNewRoute = () => {
+    if (!newRouteName || !newRouteColor) {
+      alert('Por favor, preencha todos os campos.');
+      return;
+    }
+
+    // Verifica se a cor digitada é válida
+    const normalizedColor = newRouteColor.toLowerCase();
+    const validColor = validColors.includes(normalizedColor) ? normalizedColor : 'black';
+
+    setRouteName(newRouteName); // Atualiza o nome da rota
+    setDate(format(new Date(), 'dd-MM-yyyy HH:mm:ss')); // Registra a data
+    setIsRunning(true); // Inicia o cronômetro
+    setHasStarted(true); // Marca como iniciado
+    setModalVisible(false); // Fecha o modal de cadastro
+    startLocationUpdates(validColor); // Passa a cor validada para iniciar a rastreabilidade
+    setShowNewRouteFormModal(false); // Fecha o modal de cadastro após o cadastro
+
+    // Limpa os campos do formulário
+    setNewRouteName('');
+    setNewRouteColor('');
   };
 
   return (
@@ -193,7 +221,7 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
           <Text style={styles.buttonText}>Stop</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.button} onPress={saveRoute}>
+      <TouchableOpacity style={styles.button} onPress={() => setShowNewRouteFormModal(true)}>
         <Text style={styles.buttonText}>Gravar Nova Rota</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('ListarRotas')}>
@@ -202,32 +230,55 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
       <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
         <Text style={styles.buttonText}>Sair</Text>
       </TouchableOpacity>
+
+      {/* Modal para seleção de rotas predefinidas */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
+        onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalText}>Escolha o Nome da Rota</Text>
-            <Picker
-              selectedValue={selectedRouteName}
-              style={styles.picker}
-              onValueChange={(itemValue) => setSelectedRouteName(itemValue)}
+        <View style={styles.modalView}>
+          <Text style={styles.modalText}>Escolha uma rota</Text>
+          {Object.keys(routeColors).map((route) => (
+            <TouchableOpacity
+              key={route}
+              style={[styles.button, { backgroundColor: routeColors[route] }]}
+              onPress={() => startTimer(route, routeColors[route])}
             >
-              <Picker.Item label="Cohab/Santa Maria" value="Cohab/Santa Maria" />
-              <Picker.Item label="São Pedro" value="São Pedro" />
-              <Picker.Item label="Emilio Gardenal" value="Emilio Gardenal" />
-              <Picker.Item label="Povo Feliz" value="Povo Feliz" />
-              <Picker.Item label="São Roque/Bonanza" value="São Roque/Bonanza" />
-            </Picker>
-            <TouchableOpacity style={styles.button} onPress={() => startTimer(selectedRouteName)}>
-              <Text style={styles.buttonText}>OK</Text>
+              <Text style={styles.buttonText}>{route}</Text>
             </TouchableOpacity>
-          </View>
+          ))}
+        </View>
+      </Modal>
+
+      {/* Modal para cadastro de novas rotas */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showNewRouteFormModal}
+        onRequestClose={() => setShowNewRouteFormModal(false)}
+      >
+        <View style={styles.modalView}>
+          <Text style={styles.modalText}>Cadastrar Nova Rota</Text>
+          <TextInput
+            placeholder="Nome da Rota"
+            style={styles.input}
+            value={newRouteName}
+            onChangeText={setNewRouteName}
+          />
+          <TextInput
+            placeholder="Cor da Rota (em inglês)"
+            style={styles.input}
+            value={newRouteColor}
+            onChangeText={setNewRouteColor}
+          />
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleCreateNewRoute}
+          >
+            <Text style={styles.buttonText}>Criar</Text>
+          </TouchableOpacity>
         </View>
       </Modal>
     </View>

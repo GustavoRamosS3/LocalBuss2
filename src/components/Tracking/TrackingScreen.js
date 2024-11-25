@@ -1,45 +1,39 @@
-//TrackingScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Alert } from 'react-native';
 import * as Location from 'expo-location';
-import styles from './TrackingScreenStyle.js'
 import { Picker } from '@react-native-picker/picker';
+import styles from './TrackingScreenStyle.js';
 
-const ROUTE_API_URL = 'https://parseapi.back4app.com/classes/LocAtual';
-const APP_ID = 'QlUVf0spu3gUQPMifr8zOVmG3LCbYmsGiSdd62rI';
-const REST_API_KEY = 'xiUvBsGSYVF0H7iDSYum9MXekIatgY7xh8ghQu3N';
-
-const routes = {
-  'point Cohab/Santa Maria': {
-    name: 'point Cohab/Santa Maria',
-    iconPath: require('../../../assets/iconRotas/iconCohab.png')
-  },
-  'point São Pedro': {
-    name: 'point São Pedro',
-    iconPath: require('../../../assets/iconRotas/iconPedro.png')
-  },
-  'point Emilio Gardenal': {
-    name: 'point Emilio Gardenal',
-    iconPath: require('../../../assets/iconRotas/iconEmilio.png')
-  },
-  'point Povo Feliz': {
-    name: 'point Povo Feliz',
-    iconPath: require('../../../assets/iconRotas/iconPovo.png')
-  },
-  'point São Roque/Bonanza': {
-    name: 'point São Roque/Bonanza',
-    iconPath: require('../../../assets/iconRotas/iconRoque.png')
-  }
-};
+const ROUTE_API_URL = 'https://parseapi.back4app.com/classes/Rota';
+const APP_ID = 'arjJzEgN7cooqvlcKclRSbD99VdjMHmrQIptuBMa';
+const REST_API_KEY = 'NrywrhYcOsflSr1qg1A7wHulxIS3a8ubUBCVLkil';
 
 export default function TrackingScreen() {
   const [buttonActive, setButtonActive] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [chatVisible, setChatVisible] = useState(false);
-  const [selectedRouteName, setSelectedRouteName] = useState('');
+  const [selectedRoute, setSelectedRoute] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [routeId, setRouteId] = useState(null);
+  const [routes, setRoutes] = useState([]);
 
+  // Função para buscar rotas do banco de dados
+  const fetchRoutesFromDatabase = async () => {
+    try {
+      const response = await fetch(ROUTE_API_URL, {
+        method: 'GET',
+        headers: {
+          'X-Parse-Application-Id': APP_ID,
+          'X-Parse-REST-API-Key': REST_API_KEY
+        }
+      });
+      const data = await response.json();
+      setRoutes(data.results || []);
+    } catch (error) {
+      console.error('Erro ao buscar rotas:', error);
+    }
+  };
+
+  // Lógica para rastrear a localização
   useEffect(() => {
     if (buttonActive) {
       const getLocation = async () => {
@@ -56,79 +50,18 @@ export default function TrackingScreen() {
       getLocation();
 
       const intervalId = setInterval(getLocation, 3000);
-
       return () => clearInterval(intervalId);
     }
   }, [buttonActive]);
 
-  useEffect(() => {
-    if (selectedRouteName) {
-      checkRouteInDatabase();
-    }
-  }, [selectedRouteName]);
-
-  const checkRouteInDatabase = async () => {
-    try {
-      const route = routes[selectedRouteName];
-
-      const response = await fetch(`${ROUTE_API_URL}?where={"name":"${route.name}"}`, {
-        method: 'GET',
-        headers: {
-          'X-Parse-Application-Id': APP_ID,
-          'X-Parse-REST-API-Key': REST_API_KEY
-        }
-      });
-
-      const data = await response.json();
-      const routeExists = data.results && data.results.length > 0;
-
-      if (routeExists) {
-        console.log('off');
-        const existingRouteId = data.results[0].objectId;
-        setRouteId(existingRouteId);
-      } else {
-        const routeId = new Date().getTime(); 
-        const currentDate = new Date().toISOString();
-
-        const createResponse = await fetch(ROUTE_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Parse-Application-Id': APP_ID,
-            'X-Parse-REST-API-Key': REST_API_KEY
-          },
-          body: JSON.stringify({
-            routeId: routeId,
-            path: [],
-            name: route.name,
-            date: currentDate
-          })
-        });
-
-        const newRouteData = await createResponse.json();
-
-        if (createResponse.ok) {
-          console.log('ok');
-          setRouteId(newRouteData.objectId);
-        } else {
-          console.error('Erro ao criar nova rota:', newRouteData);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar ou criar rota:', error.message || error);
-    }
-  };
-
   const sendLocationUpdate = async (coords) => {
-    if (!selectedRouteName) {
+    if (!routeId) {
       console.log('Aguardando seleção de rota...');
       return;
     }
 
-    if (!routeId) return; 
-
     try {
-      const currentDate = new Date().toISOString(); 
+      const currentDate = new Date().toISOString();
 
       await fetch(`${ROUTE_API_URL}/${routeId}`, {
         method: 'PUT',
@@ -138,13 +71,12 @@ export default function TrackingScreen() {
           'X-Parse-REST-API-Key': REST_API_KEY
         },
         body: JSON.stringify({
-          path: [coords],
-          name: routes[selectedRouteName].name,
-          date: currentDate
+          localAtual: [{ latitude: coords.latitude, longitude: coords.longitude }],
+          dateUpdate: { "__type": "Date", "iso": currentDate }
         })
       });
 
-      console.log('Coordenada atualizada para a rota:', selectedRouteName);
+      console.log('Coordenada atualizada para a rota:', selectedRoute?.name);
     } catch (error) {
       console.error('Erro ao enviar atualização de localização:', error.message || error);
     }
@@ -153,25 +85,27 @@ export default function TrackingScreen() {
   const toggleTracking = () => {
     if (buttonActive) {
       setButtonActive(false);
-      setSelectedRouteName('');
+      setSelectedRoute(null);
       setRouteId(null);
       console.log('Parando o envio de coordenadas.');
     } else {
+      // Antes de mostrar o modal, buscar as rotas mais recentes
+      fetchRoutesFromDatabase();
       setModalVisible(true);
     }
   };
 
   const startTracking = () => {
-    if (selectedRouteName) {
+    if (selectedRoute) {
       setButtonActive(true);
       setModalVisible(false);
-      console.log(`Iniciando envio para a rota: ${selectedRouteName}`);
+      setRouteId(selectedRoute.objectId);
+      console.log(`Iniciando envio para a rota: ${selectedRoute.name}`);
     } else {
       console.log('Nenhuma rota selecionada.');
     }
   };
 
-  
   return (
     <View style={styles.container}>
       <View style={styles.buttonContainer}>
@@ -194,18 +128,21 @@ export default function TrackingScreen() {
             <Text style={styles.modalText}>Escolha a Rota para o Seu Trajeto</Text>
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={selectedRouteName}
+                selectedValue={selectedRoute?.objectId}
                 style={styles.picker}
-                onValueChange={(itemValue) => setSelectedRouteName(itemValue)}
+                onValueChange={(itemValue) => {
+                  const selected = routes.find(route => route.objectId === itemValue);
+                  setSelectedRoute(selected || null);
+                }}
               >
-                {!selectedRouteName && (
+                {!selectedRoute && (
                   <Picker.Item label="Clique aqui" value="" />
                 )}
-                {Object.keys(routes).map((routeName) => (
+                {routes.map((route) => (
                   <Picker.Item
-                    key={routeName}
-                    label={routeName}
-                    value={routeName}
+                    key={route.objectId}
+                    label={route.name}
+                    value={route.objectId}
                   />
                 ))}
               </Picker>
