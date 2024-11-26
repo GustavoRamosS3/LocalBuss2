@@ -85,6 +85,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  // Estilo para o título
+  title: {
+    fontSize: 18,       // Tamanho da fonte ajustado
+    fontWeight: 'bold', // Deixar o título em negrito
+    marginBottom: -170 ,   // Espaçamento abaixo do título
+    textAlign: 'center', // Alinhamento centralizado
+    paddingHorizontal: 20, // Margem nas laterais para evitar que o texto fique muito perto das bordas
+    marginTop: 170
+  },
 });
 
 export default styles;

@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './HomeStyle.js';
+import { ScrollView } from 'react-native';
 
 const logo = require('../../../assets/L_Azul.png'); // Atualize o caminho conforme necessário
 
@@ -17,9 +18,12 @@ const routeColors = {
 };
 
 const validColors = [
-  'blue', 'green', 'red', 'purple', 'orange', 'yellow', 'pink', 'black', 'white', 'brown', 'gray', 'cyan', 'magenta',
-  'indigo', 'violet', 'teal', 'lime', 'navy', 'maroon', 'beige', 'gold', 'silver', 'peach', 'mint', 'coral', 'lavender'
+  'blue', 'green', 'red', 'purple', 'orange', 'yellow', 'pink', 'black', 'brown', 'gray', 'cyan', 'magenta',
+  'indigo', 'violet', 'teal', 'lime', 'navy', 'maroon', 'beige', 'gold', 'silver', 'coral', 'lavender', 
+  'crimson', 'turquoise', 'fuchsia', 'chartreuse', 'tomato', 
+'aqua', 'periwinkle', 'plum', 'goldenrod'
 ];
+
 
 export default function Home({ navigation, route, setUsuarioLogado, resetLoginState }) {
   const [location, setLocation] = useState(null);
@@ -34,11 +38,14 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
   const [locationSubscription, setLocationSubscription] = useState(null);
   const [routePath, setRoutePath] = useState([]);
   const [selectedRouteName, setSelectedRouteName] = useState('');
-  const [showNewRouteFormModal, setShowNewRouteFormModal] = useState(false); // Novo modal para cadastro de rota
-  const [newRouteName, setNewRouteName] = useState(''); // Nome da nova rota
-  const [newRouteColor, setNewRouteColor] = useState(''); // Cor da nova rota
+  const [showNewRouteFormModal, setShowNewRouteFormModal] = useState(false);
+  const [newRouteName, setNewRouteName] = useState('');
+  const [newRouteColor, setNewRouteColor] = useState('');
+  
+  // Adicionando o estado para controlar o modal de rotas predefinidas
+  const [showRouteSelectionModal, setShowRouteSelectionModal] = useState(false);
 
-  const nomeUsuario = route.params?.nomeUsuario || 'Usuário'; // Obtém o nome do usuário logado
+  const nomeUsuario = route.params?.nomeUsuario || 'Usuário'; 
 
   // Função para sair e voltar para a tela de login
   const handleLogout = async () => {
@@ -77,7 +84,7 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
 
   const handleStart = () => {
     if (!hasStarted) {
-      setModalVisible(true); // Abre as opções de rotas predefinidas
+      setShowRouteSelectionModal(true); // Abre o modal de seleção de rota predefinida
     } else {
       setIsRunning(true);
       startLocationUpdates();
@@ -90,7 +97,7 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
     setDate(format(now, 'dd-MM-yyyy HH:mm:ss'));
     setIsRunning(true);
     setHasStarted(true);
-    setModalVisible(false);
+    setShowRouteSelectionModal(false); // Fecha o modal de seleção
     startLocationUpdates(color);
   };
 
@@ -140,11 +147,11 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
       return;
     }
 
-    const routeId = Math.floor(Math.random() * 1000); // Gera um número aleatório
+    const routeId = Math.floor(Math.random() * 1000); 
     const routeData = {
       routeId: routeId,
       name: routeName,
-      color: routePath[0].color, // A primeira coordenada define a cor
+      color: routePath[0].color,
       date: date,
       path: routePath,
       time: formatTime(timer),
@@ -168,39 +175,37 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
 
       const data = await response.json();
       console.log('Route saved successfully:', data);
-      setRoutePath([]); // Limpa o caminho após salvar
+      setRoutePath([]); 
     } catch (error) {
       console.error('Error saving route:', error.message || error);
     }
   };
 
   const formatTime = (time) => {
-    const getSeconds = `0${time % 60}`.slice(-2);
-    const minutes = Math.floor(time / 60);
-    const getMinutes = `0${minutes % 60}`.slice(-2);
-    const getHours = `0${Math.floor(time / 3600)}`.slice(-2);
-    return `${getHours} : ${getMinutes} : ${getSeconds}`;
+    const getSeconds = `${time % 60}`.padStart(2, '0');
+    const getMinutes = `${Math.floor(time / 60) % 60}`.padStart(2, '0');
+    const getHours = `${Math.floor(time / 3600)}`.padStart(2, '0');
+    return `${getHours}:${getMinutes}:${getSeconds}`;
   };
 
+  // Função de criação de nova rota
   const handleCreateNewRoute = () => {
     if (!newRouteName || !newRouteColor) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
 
-    // Verifica se a cor digitada é válida
     const normalizedColor = newRouteColor.toLowerCase();
     const validColor = validColors.includes(normalizedColor) ? normalizedColor : 'black';
 
-    setRouteName(newRouteName); // Atualiza o nome da rota
-    setDate(format(new Date(), 'dd-MM-yyyy HH:mm:ss')); // Registra a data
-    setIsRunning(true); // Inicia o cronômetro
-    setHasStarted(true); // Marca como iniciado
-    setModalVisible(false); // Fecha o modal de cadastro
-    startLocationUpdates(validColor); // Passa a cor validada para iniciar a rastreabilidade
-    setShowNewRouteFormModal(false); // Fecha o modal de cadastro após o cadastro
+    setRouteName(newRouteName);
+    setDate(format(new Date(), 'dd-MM-yyyy HH:mm:ss'));
+    setIsRunning(true);
+    setHasStarted(true);
+    setShowRouteSelectionModal(false);
+    startLocationUpdates(validColor);
+    setShowNewRouteFormModal(false);
 
-    // Limpa os campos do formulário
     setNewRouteName('');
     setNewRouteColor('');
   };
@@ -231,28 +236,31 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
         <Text style={styles.buttonText}>Sair</Text>
       </TouchableOpacity>
 
-      {/* Modal para seleção de rotas predefinidas */}
+      {/* Modal de Seleção de Rotas Predefinidas */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        visible={showRouteSelectionModal}
+        onRequestClose={() => setShowRouteSelectionModal(false)}
       >
         <View style={styles.modalView}>
-          <Text style={styles.modalText}>Escolha uma rota</Text>
-          {Object.keys(routeColors).map((route) => (
-            <TouchableOpacity
-              key={route}
-              style={[styles.button, { backgroundColor: routeColors[route] }]}
+          <Text style={styles.modalText}>Selecione uma Rota Predefinida</Text>
+          {Object.keys(routeColors).map((route, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.button} 
               onPress={() => startTimer(route, routeColors[route])}
             >
               <Text style={styles.buttonText}>{route}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity style={styles.buttonF} onPress={() => setShowRouteSelectionModal(false)}>
+            <Text style={styles.buttonTextF}>Fechar</Text>
+          </TouchableOpacity>
         </View>
       </Modal>
 
-      {/* Modal para cadastro de novas rotas */}
+      {/* Modal de Cadastro de Nova Rota */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -267,16 +275,19 @@ export default function Home({ navigation, route, setUsuarioLogado, resetLoginSt
             value={newRouteName}
             onChangeText={setNewRouteName}
           />
-          <TextInput
-            placeholder="Cor da Rota (em inglês)"
-            style={styles.input}
-            value={newRouteColor}
-            onChangeText={setNewRouteColor}
-          />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleCreateNewRoute}
-          >
+          <ScrollView contentContainerStyle={styles.colorList} style={{ maxHeight: 250 }}>
+            {validColors.map((color) => (
+              <TouchableOpacity
+                key={color}
+                onPress={() => setNewRouteColor(color)}
+                style={[styles.colorOption, { backgroundColor: color === newRouteColor ? '#ddd' : 'transparent' }]}
+              >
+                <View style={[styles.colorCircle, { backgroundColor: color }]} />
+                <Text style={styles.pickerText}>{color}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity style={styles.button} onPress={handleCreateNewRoute}>
             <Text style={styles.buttonText}>Criar</Text>
           </TouchableOpacity>
         </View>

@@ -108,6 +108,9 @@ export default function TrackingScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Título Adicionado */}
+      <Text style={styles.title}>Ligue o Botão para Ativar sua Localização em Tempo Real</Text>
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.roundButton, { backgroundColor: buttonActive ? 'red' : '#2196F3' }]}
